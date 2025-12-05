@@ -1,4 +1,3 @@
-# File: run.py
 import http.server
 import socketserver
 import os
@@ -6,8 +5,8 @@ import subprocess
 import json
 import sys
 
-PORT = 8000
-# Pastikan folder web ada, jika tidak gunakan direktori saat ini
+PORT = int(os.environ.get("PORT", 8000))
+
 WEB_DIR = os.path.join(os.getcwd(), "web") 
 if not os.path.exists(WEB_DIR):
     WEB_DIR = os.getcwd()
@@ -17,25 +16,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=WEB_DIR, **kwargs)
 
     def do_POST(self):
-        # Menangani request regenerasi data
         if self.path == '/regenerate-data':
             print("Menerima permintaan regenerasi data...")
             try:
-                # Tentukan path ke script python
-                # Asumsi folder scripts ada di root proyek (sejajar dengan run.py)
                 script_path = os.path.join(os.getcwd(), 'scripts', 'generate_chaos.py')
-                
                 if not os.path.exists(script_path):
                     raise FileNotFoundError(f"Script tidak ditemukan di: {script_path}")
-
-                # Jalankan script
                 result = subprocess.run(
                     [sys.executable, script_path], 
                     capture_output=True, 
                     text=True,
                     check=True
                 )
-                
                 print("Script output:", result.stdout)
                 
                 self.send_response(200)

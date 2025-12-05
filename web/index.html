@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Beranda | Visualisasi Lotka-Volterra dan SEI₁I₂R</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="home">
+    <!-- Hero section: title, dataset meta and regenerate button used by `web/main.js` -->
+    <header class="hero">
+      <div class="hero__content">
+        <p class="hero__tag">Proyek Visualisasi Numerik</p>
+        <h1>Pilih Halaman Model</h1>
+        <p>
+          Proyek ini menyediakan visualisasi numerik yang dihasilkan oleh skrip
+          Python. Halaman ini menyajikan ringkasan model yang tersedia beserta
+          tautan untuk membuka tiap halaman model dan melihat hasil
+          visualisasinya.
+        </p>
+        <div class="hero__meta">
+          <div>
+            <span>Data terakhir dibuat:</span>
+            <strong id="generated-at">-</strong>
+          </div>
+          <div class="hero__actions">
+            <div class="hero__actions-row">
+              <a class="btn hero__action-compact" href="chaos/"
+                >Halaman Sistem Chaos</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="hero__cards">
+        <article class="hero-card">
+          <h3>Sistem Chaos</h3>
+          <p>
+            Simulasi perbandingan RK4 vs RK5 pada sistem Lorenz, Chen, dan
+            Rossler.
+          </p>
+          <p>Fitur: 3D Trajectory, Phase Portraits, Error Analysis.</p>
+          <a href="chaos/" class="btn">Buka Simulasi</a>
+        </article>
+      </div>
+    </header>
+
+    <main>
+      <section class="info-section">
+        <h2>Tentang Proyek Ini</h2>
+        <p>
+          Proyek ini bertujuan untuk memvisualisasikan solusi numerik dari model
+          matematika menggunakan metode Runge-Kutta. Data dihasilkan melalui
+          skrip Python dan divisualisasikan di web menggunakan Chart.js. Dengan
+          memisahkan visualisasi ke dalam halaman khusus, diharapkan pengguna
+          dapat lebih fokus pada konteks dan hasil dari masing-masing model.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Data dibangkitkan oleh Python lalu divisualisasikan dengan Chart.js.
+        Pilih halaman sesuai model yang ingin dibahas.
+      </p>
+    </footer>
+
+    <script src="main.js"></script>
+    <script src="home.js"></script>
+  </body>
+</html>

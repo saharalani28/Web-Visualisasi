@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lotka-Volterra | Visualisasi IRK5</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+  </head>
+  <body>
+    <header class="top-nav">
+      <a class="nav-link" href="../index.html">Beranda</a>
+      <a class="nav-link" href="../sei/">Halaman SEI₁I₂R</a>
+    </header>
+
+    <!-- Hero section: dataset meta, regenerate button and quick actions for Lotka page -->
+    <header class="hero">
+      <div class="hero__content">
+        <p class="hero__tag">Notebook: IRK5-LotkaVolterra</p>
+        <h1>Simulasi Predator-Mangsa</h1>
+        <p>
+          Halaman ini berdiri sendiri untuk eksperimen Lotka-Volterra menggunakan Improved Runge-Kutta (order 5).
+          Gunakan untuk memaparkan predator–prey dynamics (rabbit vs wolf) dan menjelaskan perilaku populasi sepanjang waktu.
+        </p>
+        <div class="hero__meta">
+          <div>
+            <span>Data terakhir dibuat:</span>
+            <strong id="generated-at">-</strong>
+          </div>
+          <div class="hero__actions">
+            <button id="regenerate-btn" type="button" class="btn btn--primary hero__actions-primary">
+              Bangun ulang data (Python)
+            </button>
+            <div class="hero__actions-row">
+              <button id="open-lotka-modal" type="button" class="btn hero__action-compact">
+                Kustomisasi parameter
+              </button>
+              <a class="btn hero__action-compact" href="../sei/">Lihat halaman SEI₁I₂R</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="hero__cards">
+        <article class="hero-card">
+          <h3>Ringkasan IRK5</h3>
+          <p>Model predator-mangsa dengan orbit fase dan tabel checkpoint otomatis.</p>
+          <ul>
+            <li>Rentang waktu: <span id="lv-time-range">-</span></li>
+            <li>Step numerik: <span id="lv-step">-</span></li>
+          </ul>
+        </article>
+      </div>
+    </header>
+
+    <main id="lotka">
+      <section class="panel">
+        <div class="panel__head">
+          <div>
+            <p class="eyebrow">Simulasi Predator-Mangsa</p>
+            <h2>Lotka-Volterra dengan Improved RK5</h2>
+            <p>
+              Visualisasi populasi prey (kelinci) dan predator (serigala) sepanjang waktu serta fase orbitnya.
+              Data diambil langsung dari kode Python dan disampel ulang agar ringan di browser.
+            </p>
+          </div>
+          <div class="panel__cta">
+            <p>Parameter model:</p>
+            <ul id="lv-params"></ul>
+          </div>
+        </div>
+        <div class="grid grid--two">
+          <article class="card">
+            <header class="card__header">
+              <div>
+                <h3>Populasi vs Waktu</h3>
+                <p>Kelinci dan serigala memperlihatkan osilasi yang saling berkaitan.</p>
+              </div>
+              <button class="zoom-btn" type="button" data-chart-id="lv-time">Perbesar</button>
+            </header>
+            <canvas id="lv-time-chart" height="160"></canvas>
+          </article>
+          <article class="card">
+            <header class="card__header">
+              <div>
+                <h3>Phase Portrait</h3>
+                <p>Orbit tertutup menunjukkan siklus limit antara kedua populasi.</p>
+              </div>
+              <button class="zoom-btn" type="button" data-chart-id="lv-phase">Perbesar</button>
+            </header>
+            <canvas id="lv-phase-chart" height="160"></canvas>
+          </article>
+        </div>
+        <div class="card card--full">
+          <header>
+            <h3>Sampel Nilai Solusi</h3>
+            <p>Checkpoint otomatis setiap ~7% waktu simulasi.</p>
+          </header>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Waktu</th>
+                  <th>Prey</th>
+                  <th>Predator</th>
+                </tr>
+              </thead>
+              <tbody id="lv-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Halaman khusus Lotka-Volterra. Gunakan tombol "Bangun ulang data" jika simulasi Python perlu dijalankan ulang.
+      </p>
+    </footer>
+
+    <div id="lotka-modal" class="action-modal" aria-hidden="true">
+      <div class="action-modal__dialog">
+        <button type="button" class="action-modal__close" id="lotka-modal-close" aria-label="Tutup">×</button>
+        <h3>Kustomisasi Parameter Lotka-Volterra</h3>
+        <p class="action-modal__desc">
+          Penyesuaian ini hanya berlaku di browser dan tidak mengubah file Python. Gunakan untuk eksperimen cepat
+          saat presentasi.
+        </p>
+        <form id="lotka-form" class="action-form">
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="alpha-input">Alpha (pertumbuhan prey)</label>
+              <input id="alpha-input" name="alpha" type="number" step="0.01" min="0" required />
+            </div>
+            <div class="form-field">
+              <label for="beta-input">Beta (interaksi prey-predator)</label>
+              <input id="beta-input" name="beta" type="number" step="0.01" min="0" required />
+            </div>
+            <div class="form-field">
+              <label for="delta-input">Delta (efisiensi predator)</label>
+              <input id="delta-input" name="delta" type="number" step="0.01" min="0" required />
+            </div>
+            <div class="form-field">
+              <label for="gamma-input">Gamma (kematian predator)</label>
+              <input id="gamma-input" name="gamma" type="number" step="0.01" min="0" required />
+            </div>
+            <div class="form-field">
+              <label for="prey-input">Prey awal</label>
+              <input id="prey-input" name="prey0" type="number" step="0.1" min="0" required />
+            </div>
+            <div class="form-field">
+              <label for="predator-input">Predator awal</label>
+              <input id="predator-input" name="predator0" type="number" step="0.1" min="0" required />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Jalankan Simulasi</button>
+            <button type="button" class="btn" id="lotka-reset-btn">Kembalikan Data Asli</button>
+            <p class="form-note" id="lotka-form-status">Menampilkan data bawaan generator.</p>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="zoom-modal" class="zoom-modal" aria-hidden="true">
+      <div class="zoom-modal__dialog">
+        <button type="button" class="zoom-modal__close" id="zoom-modal-close" aria-label="Tutup">×</button>
+        <h3 id="zoom-modal-title"></h3>
+        <div class="zoom-modal__canvas">
+          <canvas id="zoom-modal-canvas" height="360"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <script src="../main.js"></script>
+    <script src="./lotka.js"></script>
+  </body>
+</html>

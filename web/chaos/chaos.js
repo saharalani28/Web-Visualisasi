@@ -3,6 +3,77 @@ document.addEventListener("DOMContentLoaded", function () {
   const statusMsg = document.getElementById("statusMsg");
   const systemSelect = document.getElementById("systemSelect");
 
+  // Ambil elemen DOM
+  const modal = document.getElementById("parameterModal");
+  const btn = document.getElementById("customDataBtn");
+  const span = document.getElementsByClassName("close")[0];
+  const form = document.getElementById("chaosParamsForm");
+
+  // 1. Buka Modal ketika tombol diklik
+  btn.onclick = function () {
+    modal.style.display = "block";
+  };
+
+  // 2. Tutup Modal ketika tombol (x) diklik
+  span.onclick = function () {
+    modal.style.display = "none";
+  };
+
+  // 3. Tutup Modal jika user klik di luar area modal
+  window.onclick = function (event) {
+    if (event.target == modal) {
+      modal.style.display = "none";
+    }
+  };
+
+  // 4. Handle Submit Data
+  form.onsubmit = function (e) {
+    e.preventDefault(); // Mencegah reload halaman
+
+    // Ambil nilai dari input
+    const params = {
+      damping: parseFloat(document.getElementById("damping").value),
+      force: parseFloat(document.getElementById("force").value),
+      initX: parseFloat(document.getElementById("initX").value),
+      timeStep: parseFloat(document.getElementById("timeStep").value),
+    };
+
+    console.log("Parameter Kustom:", params);
+
+    // TODO: Kirim data ini ke Backend Python atau Update Grafik langsung
+    // Contoh pemanggilan fungsi update (kamu harus sesuaikan dengan fungsi utamamu)
+    updateChaosSimulation(params);
+
+    // Tutup modal setelah submit
+    modal.style.display = "none";
+  };
+
+  // Fungsi dummy untuk menghubungkan ke visualisasi (Sesuaikan dengan logic RK4 kamu)
+  function updateChaosSimulation(params) {
+    alert(
+      "Data berhasil diinput!\nRedaman: " +
+        params.damping +
+        "\nTime Step: " +
+        params.timeStep
+    );
+
+    // LOGIKA INTEGRASI:
+    // Jika backendmu menggunakan Python (Flask/FastAPI), gunakan fetch() di sini:
+    /*
+    fetch('/api/calculate-chaos', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(params)
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update Chart.js dengan data baru
+        myChart.data.datasets[0].data = data.results;
+        myChart.update();
+    });
+    */
+  }
+
   let chaosData = null;
 
   const commonLayout = {

@@ -2,11 +2,10 @@ document.addEventListener("DOMContentLoaded", function () {
   const regenerateBtn = document.getElementById("regenerateBtn");
   const statusMsg = document.getElementById("statusMsg");
   const systemSelect = document.getElementById("systemSelect");
-  const sourceBadge = document.getElementById("data-source-badge");
 
   const modal = document.getElementById("paramModal");
   const openModalBtn = document.getElementById("openModalBtn");
-  const closeModalSpan = document.querySelector(".close-modal");
+  const closeModalBtn = document.querySelector(".close-modal");
   const customForm = document.getElementById("customForm");
   const resetDefaultBtn = document.getElementById("resetDefaultBtn");
 
@@ -26,6 +25,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let serverData = null;
   let currentData = null;
   let isCustomMode = false;
+
   const defaultParams = {
     Lorenz: { p1: 10, p2: 28, p3: 8 / 3, labels: ["Sigma", "Rho", "Beta"] },
     Chen: { p1: 35, p2: 3, p3: 28, labels: ["a", "b", "c"] },
@@ -35,38 +35,51 @@ document.addEventListener("DOMContentLoaded", function () {
   const commonLayout = {
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
-    font: { color: "#e0e0e0" },
-    xaxis: { gridcolor: "#333" },
-    yaxis: { gridcolor: "#333" },
+    font: {
+      family: '"Inter", sans-serif',
+      color: "#e0e0e0",
+    },
+    margin: { t: 40, b: 40, l: 40, r: 20 },
+    xaxis: {
+      gridcolor: "rgba(255, 255, 255, 0.1)",
+      zerolinecolor: "rgba(255, 255, 255, 0.2)",
+    },
+    yaxis: {
+      gridcolor: "rgba(255, 255, 255, 0.1)",
+      zerolinecolor: "rgba(255, 255, 255, 0.2)",
+    },
   };
+
+  const plotConfig = { responsive: true, displayModeBar: false };
 
   async function loadServerData() {
     statusMsg.textContent = "Memuat data dari server...";
+    statusMsg.style.color = "#a1a1aa"; // text-secondary color
+
     try {
       const timestamp = new Date().getTime();
+      // Pastikan path ini sesuai dengan struktur folder Anda
       const response = await fetch(`../data/chaos_data.json?t=${timestamp}`);
 
       if (!response.ok)
-        throw new Error(
-          "File data belum dibuat. Silakan klik 'Bangun Ulang Data'."
-        );
+        throw new Error("File data belum tersedia. Klik 'Simulasi Ulang'.");
 
       serverData = await response.json();
 
       if (!isCustomMode) {
         currentData = serverData;
         updatePlots();
-        statusMsg.textContent = "Data default dimuat.";
-        statusMsg.style.color = "#8ef6c5";
-        sourceBadge.textContent = "Sumber: Python (Default)";
+        statusMsg.textContent = "✓ Data server berhasil dimuat.";
+        statusMsg.style.color = "#10b981"; // Success Green
       }
     } catch (error) {
       console.error("Load Error:", error);
-      statusMsg.innerHTML = `⚠️ ${error.message}`;
-      statusMsg.style.color = "#fb6f92";
+      statusMsg.textContent = `⚠️ ${error.message}`;
+      statusMsg.style.color = "#fb6f92"; // Error Pink
     }
   }
 
+  // --- RK4 & RK5 Logic (Sama seperti sebelumnya) ---
   const systems = {
     Lorenz: (x, y, z, p) => ({
       dx: p[0] * (y - x),
@@ -108,10 +121,6 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
 
-  function stepRK5(f, x, y, z, h, p) {
-    return stepRK4(f, x, y, z, h, p);
-  }
-
   function runSimulation(sysName, params, init, duration, h) {
     const steps = Math.floor(duration / h);
     const func = systems[sysName];
@@ -131,8 +140,7 @@ document.addEventListener("DOMContentLoaded", function () {
       y5 = init.y,
       z5 = init.z;
 
-    const ds = Math.max(1, Math.floor(steps / 5000));
-
+    const ds = Math.max(1, Math.floor(steps / 5000)); // Downsampling agar browser tidak berat
     let sumAbs = [0, 0, 0];
     let sumSq = [0, 0, 0];
 
@@ -142,6 +150,7 @@ document.addEventListener("DOMContentLoaded", function () {
       y4 = n4.y;
       z4 = n4.z;
 
+      // RK5 Simulation (Simulated noise/higher order check)
       let n5 = stepRK4(func, x5, y5, z5, h, p);
       x5 = n5.x + (Math.random() - 0.5) * 1e-5;
       y5 = n5.y + (Math.random() - 0.5) * 1e-5;
@@ -176,6 +185,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return finalData;
   }
 
+  // --- Rendering Functions ---
   function updatePlots() {
     const sysName = systemSelect.value;
     let data = currentData ? currentData[sysName] : null;
@@ -191,85 +201,126 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     const t = data.time;
+
+    // 1. Plot 3D Trajectory
     Plotly.newPlot(
       "plot3d",
       [
         {
           type: "scatter3d",
           mode: "lines",
-          name: "RK4",
+          name: "Trajectory",
           x: data.rk4.x,
           y: data.rk4.y,
           z: data.rk4.z,
-          line: { width: 3, color: t, colorscale: "Viridis" },
+          line: { width: 4, color: t, colorscale: "Viridis" },
         },
       ],
       {
         ...commonLayout,
-        margin: { l: 0, r: 0, b: 0, t: 30 },
+        margin: { l: 0, r: 0, b: 0, t: 0 },
         scene: {
-          xaxis: { title: "X", gridcolor: "#444" },
-          yaxis: { title: "Y", gridcolor: "#444" },
-          zaxis: { title: "Z", gridcolor: "#444" },
+          xaxis: {
+            title: "X",
+            gridcolor: "rgba(255,255,255,0.1)",
+            backgroundcolor: "rgba(0,0,0,0)",
+          },
+          yaxis: {
+            title: "Y",
+            gridcolor: "rgba(255,255,255,0.1)",
+            backgroundcolor: "rgba(0,0,0,0)",
+          },
+          zaxis: {
+            title: "Z",
+            gridcolor: "rgba(255,255,255,0.1)",
+            backgroundcolor: "rgba(0,0,0,0)",
+          },
+          bgcolor: "rgba(0,0,0,0)", // Penting untuk 3D transparan
         },
-        height: 600,
-      }
+        height: 550,
+      },
+      plotConfig
     );
 
+    // 2. Plot Time Series
     Plotly.newPlot(
       "plotTimeSeries",
       [
-        { x: t, y: data.rk4.x, name: "X", line: { width: 1 } },
-        { x: t, y: data.rk4.y, name: "Y", line: { width: 1 } },
-        { x: t, y: data.rk4.z, name: "Z", line: { width: 1 } },
+        {
+          x: t,
+          y: data.rk4.x,
+          name: "X",
+          line: { width: 1.5, color: "#60a5fa" },
+        }, // Blue
+        {
+          x: t,
+          y: data.rk4.y,
+          name: "Y",
+          line: { width: 1.5, color: "#34d399" },
+        }, // Green
+        {
+          x: t,
+          y: data.rk4.z,
+          name: "Z",
+          line: { width: 1.5, color: "#f472b6" },
+        }, // Pink
       ],
       {
         ...commonLayout,
-        title: "Time Series",
-        margin: { t: 30, b: 30, l: 40, r: 10 },
-      }
+        title: {
+          text: "X, Y, Z vs Time",
+          font: { size: 12, color: "#a1a1aa" },
+        },
+        margin: { t: 30, b: 30, l: 30, r: 10 },
+        showlegend: true,
+        legend: { x: 0, y: 1.1, orientation: "h" },
+      },
+      plotConfig
     );
 
+    // 3. Phase Portraits (2D)
     const phaseLayout = {
       ...commonLayout,
-      margin: { t: 30, b: 30, l: 30, r: 10 },
+      margin: { t: 30, b: 30, l: 30, r: 20 },
       showlegend: false,
     };
-    const lineStyle = { width: 1, color: "#45d2ff" };
+    const lineStyle = { width: 1.5, color: "#0ea5e9" }; // Sky Blue for phase plots
 
     Plotly.newPlot(
       "phaseXY",
       [{ x: data.rk4.x, y: data.rk4.y, mode: "lines", line: lineStyle }],
       {
         ...phaseLayout,
-        title: "X vs Y",
+        title: { text: "X vs Y", font: { size: 12 } },
         xaxis: { title: "X" },
         yaxis: { title: "Y" },
-      }
+      },
+      plotConfig
     );
-
     Plotly.newPlot(
       "phaseYZ",
       [{ x: data.rk4.y, y: data.rk4.z, mode: "lines", line: lineStyle }],
       {
         ...phaseLayout,
-        title: "Y vs Z",
+        title: { text: "Y vs Z", font: { size: 12 } },
         xaxis: { title: "Y" },
         yaxis: { title: "Z" },
-      }
+      },
+      plotConfig
     );
-
     Plotly.newPlot(
       "phaseXZ",
       [{ x: data.rk4.x, y: data.rk4.z, mode: "lines", line: lineStyle }],
       {
         ...phaseLayout,
-        title: "X vs Z",
+        title: { text: "X vs Z", font: { size: 12 } },
         xaxis: { title: "X" },
         yaxis: { title: "Z" },
-      }
+      },
+      plotConfig
     );
 
+    // 4. Error Analysis
     Plotly.newPlot(
       "plotError",
       [
@@ -278,24 +329,27 @@ document.addEventListener("DOMContentLoaded", function () {
           y: data.errors.mae,
           name: "MAE",
           type: "bar",
-          marker: { color: "#fb6f92" },
+          marker: { color: "#f472b6" }, // Soft Pink
         },
         {
           x: ["X", "Y", "Z"],
           y: data.errors.rmse,
           name: "RMSE",
           type: "bar",
-          marker: { color: "#45d2ff" },
+          marker: { color: "#60a5fa" }, // Soft Blue
         },
       ],
       {
         ...commonLayout,
         title: "Error Statistics (Log Scale)",
         barmode: "group",
-        yaxis: { type: "log", gridcolor: "#444" },
-      }
+        yaxis: { type: "log", gridcolor: "rgba(255,255,255,0.1)" },
+      },
+      plotConfig
     );
   }
+
+  // --- Modal & Interaction Logic ---
 
   function updateModalFields() {
     const sys = systemSelect.value;
@@ -309,18 +363,26 @@ document.addEventListener("DOMContentLoaded", function () {
     inpP3.value = p.p3;
   }
 
+  // Buka Modal (New: Gunakan class 'active' untuk CSS Transition)
   openModalBtn.onclick = function () {
     updateModalFields();
-    modal.style.display = "block";
+    modal.classList.add("active");
+    document.body.style.overflow = "hidden"; // Kunci scroll background
   };
 
-  closeModalSpan.onclick = function () {
-    modal.style.display = "none";
-  };
+  // Tutup Modal
+  function closeModal() {
+    modal.classList.remove("active");
+    document.body.style.overflow = "auto"; // Buka scroll background
+  }
+
+  if (closeModalBtn) closeModalBtn.onclick = closeModal;
+
   window.onclick = function (e) {
-    if (e.target == modal) modal.style.display = "none";
+    if (e.target == modal) closeModal();
   };
 
+  // Submit Form Kustom
   customForm.onsubmit = function (e) {
     e.preventDefault();
     const sysName = systemSelect.value;
@@ -338,31 +400,31 @@ document.addEventListener("DOMContentLoaded", function () {
     const h = parseFloat(inpH.value);
 
     statusMsg.textContent = "Menghitung simulasi kustom...";
+    statusMsg.style.color = "#60a5fa";
+
+    // Jalankan kalkulasi di browser
     const result = runSimulation(sysName, params, init, dur, h);
 
     currentData = result;
     isCustomMode = true;
-    sourceBadge.textContent = "Sumber: Kustom (Browser)";
-    sourceBadge.style.background = "rgba(251, 111, 146, 0.1)";
-    sourceBadge.style.color = "#fb6f92";
 
     updatePlots();
-    modal.style.display = "none";
-    statusMsg.textContent = "Simulasi kustom selesai.";
+    closeModal();
+
+    statusMsg.innerHTML = `Simulasi Kustom <b>${sysName}</b> Selesai.`;
+    statusMsg.style.color = "#fb6f92";
   };
 
   resetDefaultBtn.onclick = function () {
     if (serverData) {
       currentData = serverData;
       isCustomMode = false;
-      sourceBadge.textContent = "Sumber: Python (Default)";
-      sourceBadge.style.background = "rgba(69, 210, 255, 0.1)";
-      sourceBadge.style.color = "#45d2ff";
       updatePlots();
-      modal.style.display = "none";
-      statusMsg.textContent = "Kembali ke data default.";
+      closeModal();
+      statusMsg.textContent = "✓ Kembali ke data default server.";
+      statusMsg.style.color = "#10b981";
     } else {
-      alert("Data server belum dimuat. Klik Bangun Ulang Data.");
+      alert("Data server belum dimuat. Klik 'Simulasi Ulang' terlebih dahulu.");
     }
   };
 
@@ -372,25 +434,39 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   regenerateBtn.onclick = function () {
-    const oldText = regenerateBtn.textContent;
+    const oldText = regenerateBtn.innerHTML;
     regenerateBtn.textContent = "Memproses...";
     regenerateBtn.disabled = true;
 
     fetch("/regenerate-data", { method: "POST" })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         if (data.status === "success") {
+          statusMsg.textContent = "✅ Data berhasil diperbarui!";
+          statusMsg.style.color = "#10b981";
           loadServerData();
         } else {
-          alert("Error: " + data.message);
+          alert("Error dari server: " + data.message);
         }
       })
-      .catch((e) => alert("Koneksi gagal"))
+      .catch((err) => {
+        console.error("Fetch error:", err);
+        alert("Gagal menghubungi server. Pastikan run.py sedang berjalan.");
+
+        statusMsg.textContent = "⚠️ Gagal terhubung ke server.";
+        statusMsg.style.color = "#ef4444";
+      })
       .finally(() => {
-        regenerateBtn.textContent = oldText;
+        regenerateBtn.innerHTML = oldText;
         regenerateBtn.disabled = false;
       });
   };
 
+  // Init
   loadServerData();
 });

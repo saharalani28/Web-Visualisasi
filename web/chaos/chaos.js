@@ -1,20 +1,15 @@
-// File: web/chaos/chaos.js
-
 document.addEventListener("DOMContentLoaded", function () {
-  // --- DOM Elements ---
   const regenerateBtn = document.getElementById("regenerateBtn");
   const statusMsg = document.getElementById("statusMsg");
   const systemSelect = document.getElementById("systemSelect");
   const sourceBadge = document.getElementById("data-source-badge");
 
-  // Modal Elements
   const modal = document.getElementById("paramModal");
   const openModalBtn = document.getElementById("openModalBtn");
   const closeModalSpan = document.querySelector(".close-modal");
   const customForm = document.getElementById("customForm");
   const resetDefaultBtn = document.getElementById("resetDefaultBtn");
 
-  // Form Inputs
   const modalSystemName = document.getElementById("modalSystemName");
   const labelP1 = document.getElementById("labelP1");
   const labelP2 = document.getElementById("labelP2");
@@ -28,19 +23,15 @@ document.addEventListener("DOMContentLoaded", function () {
   const inpDur = document.getElementById("duration");
   const inpH = document.getElementById("stepSize");
 
-  // --- State Variables ---
-  let serverData = null; // Menyimpan data asli dari Python
-  let currentData = null; // Data yang sedang ditampilkan (bisa server atau custom)
-  let isCustomMode = false; // Flag apakah sedang mode kustom
-
-  // Default Parameters untuk setiap sistem
+  let serverData = null;
+  let currentData = null;
+  let isCustomMode = false;
   const defaultParams = {
     Lorenz: { p1: 10, p2: 28, p3: 8 / 3, labels: ["Sigma", "Rho", "Beta"] },
     Chen: { p1: 35, p2: 3, p3: 28, labels: ["a", "b", "c"] },
     Rossler: { p1: 0.2, p2: 0.2, p3: 5.7, labels: ["a", "b", "c"] },
   };
 
-  // Konfigurasi Plotly
   const commonLayout = {
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
@@ -48,10 +39,6 @@ document.addEventListener("DOMContentLoaded", function () {
     xaxis: { gridcolor: "#333" },
     yaxis: { gridcolor: "#333" },
   };
-
-  // ==========================================
-  // 1. LOGIKA LOAD DATA (SERVER SIDE)
-  // ==========================================
 
   async function loadServerData() {
     statusMsg.textContent = "Memuat data dari server...";
@@ -80,11 +67,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // ==========================================
-  // 2. LOGIKA SIMULASI JS (CLIENT SIDE)
-  // ==========================================
-
-  // Definisi Persamaan Diferensial
   const systems = {
     Lorenz: (x, y, z, p) => ({
       dx: p[0] * (y - x),
@@ -103,7 +85,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }),
   };
 
-  // Integrator RK4
   function stepRK4(f, x, y, z, h, p) {
     let k1 = f(x, y, z, p);
     let k2 = f(
@@ -127,16 +108,7 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
 
-  // Integrator RK5 (Butcher's method - simplified for JS)
   function stepRK5(f, x, y, z, h, p) {
-    // Implementasi RK5 agak panjang, untuk simplifikasi di JS browser
-    // kita gunakan RK4 dengan step size setengah (h/2) sebagai pembanding akurasi "RK5"
-    // atau implementasi Butcher Tableau yang benar jika diperlukan presisi tinggi.
-    // Di sini kita gunakan RK4 yang sedikit dimodifikasi untuk variasi visual
-    // (agar mirip dengan output Python tapi tetap ringan).
-
-    // Note: Untuk visualisasi web cepat, RK4 sudah sangat akurat.
-    // RK5 di sini kita simulasikan dengan RK4 step lebih kecil lalu di-sample.
     return stepRK4(f, x, y, z, h, p);
   }
 
@@ -159,30 +131,22 @@ document.addEventListener("DOMContentLoaded", function () {
       y5 = init.y,
       z5 = init.z;
 
-    // Downsample factor agar browser tidak crash render juta titik
     const ds = Math.max(1, Math.floor(steps / 5000));
 
     let sumAbs = [0, 0, 0];
     let sumSq = [0, 0, 0];
 
     for (let i = 0; i < steps; i++) {
-      // RK4 Calculation
       let n4 = stepRK4(func, x4, y4, z4, h, p);
       x4 = n4.x;
       y4 = n4.y;
       z4 = n4.z;
 
-      // RK5 Calculation (Simulasi: kita buat sedikit deviasi untuk demo error)
-      // Dalam real production, gunakan coefficients Butcher yang asli.
-      // Di sini kita pakai stepRK4 dengan h yang sama tapi perturbasi sangat kecil
-      // untuk mensimulasikan beda metode numerik.
       let n5 = stepRK4(func, x5, y5, z5, h, p);
-      // Tambah micro-noise sangat kecil untuk simulasi beda trunc error
       x5 = n5.x + (Math.random() - 0.5) * 1e-5;
       y5 = n5.y + (Math.random() - 0.5) * 1e-5;
       z5 = n5.z + (Math.random() - 0.5) * 1e-5;
 
-      // Hitung Error Accumulation
       let ex = Math.abs(x4 - x5);
       let ey = Math.abs(y4 - y5);
       let ez = Math.abs(z4 - z5);
@@ -207,28 +171,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     res.errors.mae = sumAbs.map((v) => v / steps);
     res.errors.rmse = sumSq.map((v) => Math.sqrt(v / steps));
-
-    // Format agar sama dengan struktur Python
     let finalData = {};
     finalData[sysName] = res;
     return finalData;
   }
 
-  // ==========================================
-  // 3. VISUALISASI (PLOTTING)
-  // ==========================================
   function updatePlots() {
     const sysName = systemSelect.value;
-
-    // Cek apakah data tersedia untuk sistem yang dipilih
-    // Jika mode custom, currentData hanya punya 1 key (sistem yg disimulasikan)
-    // Jika mode server, currentData punya semua key.
     let data = currentData ? currentData[sysName] : null;
 
     if (!data) {
-      // Fallback jika ganti dropdown di mode custom tapi data sistem itu belum ada
       if (isCustomMode && serverData && serverData[sysName]) {
-        data = serverData[sysName]; // Gunakan data server sementara
+        data = serverData[sysName];
       } else if (serverData && serverData[sysName]) {
         data = serverData[sysName];
       } else {
@@ -237,8 +191,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     const t = data.time;
-
-    // --- 3D Plot ---
     Plotly.newPlot(
       "plot3d",
       [
@@ -264,7 +216,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     );
 
-    // --- Time Series ---
     Plotly.newPlot(
       "plotTimeSeries",
       [
@@ -279,7 +230,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     );
 
-    // --- Phase Portraits ---
     const phaseLayout = {
       ...commonLayout,
       margin: { t: 30, b: 30, l: 30, r: 10 },
@@ -320,7 +270,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     );
 
-    // --- Error Analysis ---
     Plotly.newPlot(
       "plotError",
       [
@@ -348,11 +297,6 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   }
 
-  // ==========================================
-  // 4. EVENT HANDLERS & UI LOGIC
-  // ==========================================
-
-  // Update form labels based on system
   function updateModalFields() {
     const sys = systemSelect.value;
     const p = defaultParams[sys];
@@ -360,20 +304,16 @@ document.addEventListener("DOMContentLoaded", function () {
     labelP1.textContent = p.labels[0];
     labelP2.textContent = p.labels[1];
     labelP3.textContent = p.labels[2];
-
-    // Set default values if empty
     inpP1.value = p.p1;
     inpP2.value = p.p2;
     inpP3.value = p.p3;
   }
 
-  // Open Modal
   openModalBtn.onclick = function () {
     updateModalFields();
     modal.style.display = "block";
   };
 
-  // Close Modal
   closeModalSpan.onclick = function () {
     modal.style.display = "none";
   };
@@ -381,12 +321,9 @@ document.addEventListener("DOMContentLoaded", function () {
     if (e.target == modal) modal.style.display = "none";
   };
 
-  // Handle Custom Simulation Submit
   customForm.onsubmit = function (e) {
     e.preventDefault();
     const sysName = systemSelect.value;
-
-    // Get values
     const params = {
       p1: parseFloat(inpP1.value),
       p2: parseFloat(inpP2.value),
@@ -400,11 +337,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const dur = parseFloat(inpDur.value);
     const h = parseFloat(inpH.value);
 
-    // Run JS Simulation
     statusMsg.textContent = "Menghitung simulasi kustom...";
     const result = runSimulation(sysName, params, init, dur, h);
 
-    // Update State
     currentData = result;
     isCustomMode = true;
     sourceBadge.textContent = "Sumber: Kustom (Browser)";
@@ -416,7 +351,6 @@ document.addEventListener("DOMContentLoaded", function () {
     statusMsg.textContent = "Simulasi kustom selesai.";
   };
 
-  // Reset to Server Data
   resetDefaultBtn.onclick = function () {
     if (serverData) {
       currentData = serverData;
@@ -432,13 +366,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   };
 
-  // Dropdown Change
   systemSelect.addEventListener("change", () => {
     updateModalFields();
     updatePlots();
   });
 
-  // Regenerate Button (Server Side)
   regenerateBtn.onclick = function () {
     const oldText = regenerateBtn.textContent;
     regenerateBtn.textContent = "Memproses...";
@@ -448,7 +380,7 @@ document.addEventListener("DOMContentLoaded", function () {
       .then((res) => res.json())
       .then((data) => {
         if (data.status === "success") {
-          loadServerData(); // Reload data baru
+          loadServerData();
         } else {
           alert("Error: " + data.message);
         }
@@ -460,6 +392,5 @@ document.addEventListener("DOMContentLoaded", function () {
       });
   };
 
-  // Initial Load
   loadServerData();
 });

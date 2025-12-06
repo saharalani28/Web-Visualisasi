@@ -1,10 +1,7 @@
-# File: scripts/generate_chaos.py
 import numpy as np
 import json
 import os
 import sys
-
-# --- Sistem Persamaan Chaos ---
 
 def lorenz_system(t, state, sigma=10, rho=28, beta=8/3):
     x, y, z = state
@@ -26,8 +23,6 @@ def rossler_system(t, state, a=0.2, b=0.2, c=5.7):
     dy = x + a * y
     dz = b + z * (x - c)
     return np.array([dx, dy, dz])
-
-# --- Metode Numerik ---
 
 def rk4_classic(f, t, y, h, params):
     k1 = f(t, y, **params)
@@ -57,8 +52,6 @@ def solve_ode(method, f, t_span, y0, h, params):
         
     return t_values, y_values
 
-# --- Main Execution ---
-
 if __name__ == "__main__":
     t_start = 0.0
     t_end = 50.0
@@ -71,7 +64,6 @@ if __name__ == "__main__":
         'Rossler':{'a': 0.2, 'b': 0.2, 'c': 5.7}
     }
 
-    # Parsing Input Argumen (Opsional untuk kustomisasi)
     if len(sys.argv) > 1:
         try:
             raw_input = sys.argv[1]
@@ -97,16 +89,13 @@ if __name__ == "__main__":
         t_rk4, y_rk4 = solve_ode(rk4_classic, func, t_span, y0, h, params)
         t_rk5, y_rk5 = solve_ode(rk5_butcher, func, t_span, y0, h, params)
         
-        # Samakan panjang array (jaga-jaga floating point rounding)
         min_len = min(len(y_rk4), len(y_rk5))
         y_rk4, y_rk5, t_rk4 = y_rk4[:min_len], y_rk5[:min_len], t_rk4[:min_len]
 
-        # Hitung Error
         abs_err = np.abs(y_rk4 - y_rk5)
         mae = np.mean(abs_err, axis=0)
         rmse = np.sqrt(np.mean((y_rk4 - y_rk5)**2, axis=0))
         
-        # Downsample untuk JSON (agar ringan)
         skip = int(0.05 / h) 
         if skip < 1: skip = 1
         
@@ -117,26 +106,20 @@ if __name__ == "__main__":
                 'y': y_rk4[::skip, 1].tolist(),
                 'z': y_rk4[::skip, 2].tolist()
             },
-            # PERBAIKAN 1: Menyertakan data RK5 agar bisa di-plot
             'rk5': {
                 'x': y_rk5[::skip, 0].tolist(),
                 'y': y_rk5[::skip, 1].tolist(),
                 'z': y_rk5[::skip, 2].tolist()
             },
-            # PERBAIKAN 2: Struktur Error disederhanakan untuk grafik bar
             'errors': {
-                'mae': mae.tolist(),   # [errX, errY, errZ]
-                'rmse': rmse.tolist()  # [errX, errY, errZ]
+                'mae': mae.tolist(),   
+                'rmse': rmse.tolist()  
             },
             'parameters_used': params
         }
-
-    # Simpan ke JSON
-    # Menggunakan path relatif yang aman (naik satu level dari scripts/ ke root/web/data)
     output_path = os.path.join(os.path.dirname(__file__), '..', 'web', 'data', 'chaos_data.json')
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
     with open(output_path, 'w') as f:
         json.dump(data_payload, f)
-        
     print(f"Data berhasil disimpan ke: {output_path}")
